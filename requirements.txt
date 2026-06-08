@@ -1,0 +1,5 @@
+pandas
+numpy
+dbt-duckdb
+duckdb
+jinja2

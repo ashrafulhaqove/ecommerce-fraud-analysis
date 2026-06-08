@@ -1,0 +1,66 @@
+version: 2
+
+models:
+  - name: stg_transactions
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+          - unique
+      - name: customer_id
+        tests:
+          - not_null
+      - name: order_date
+        tests:
+          - not_null
+      - name: order_amount
+        tests:
+          - not_null
+      - name: payment_method
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [credit_card, debit_card, paypal, crypto]
+      - name: product_category
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [electronics, clothing, gift_cards, luxury, home]
+
+  - name: int_customer_order_velocity
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+          - unique
+
+  - name: int_customer_risk_profile
+    columns:
+      - name: customer_id
+        tests:
+          - not_null
+          - unique
+
+  - name: fct_fraud_signals
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+          - unique
+      - name: fraud_flag
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+      - name: risk_tier
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [none, low, medium, high]
+      - name: risk_score
+        tests:
+          - not_null

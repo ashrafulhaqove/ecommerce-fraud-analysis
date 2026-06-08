@@ -1,0 +1,20 @@
+# AI / vibe-coding artifacts
+.claude/
+.cursor/
+.aider*
+.copilot/
+*.ai.md
+CLAUDE.md
+.user.yml
+
+data/raw/
+data/processed/
+data/*.duckdb
+reports/index.html
+reports/build/
+__pycache__/
+.DS_Store
+.venv/
+.dbt/
+target/
+logs/

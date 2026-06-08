@@ -1,0 +1,7 @@
+ecommerce_fraud_analysis:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: data/ecommerce_fraud.duckdb
+      threads: 4
