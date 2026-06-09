@@ -21,13 +21,13 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: [credit_card, debit_card, paypal, crypto]
+                values: [visa, mastercard, discover, american express]
       - name: product_category
         tests:
           - not_null
           - accepted_values:
               arguments:
-                values: [electronics, clothing, gift_cards, luxury, home]
+                values: [Electronics, Clothing, Travel, "Home & Garden", Services]
 
   - name: int_customer_order_velocity
     columns:
