@@ -39,22 +39,39 @@ select rule, hits from (
 ) order by hits desc
 """
 
+QUERY_ML_METRICS = """
+select metric, value from ml_metrics
+"""
+
+QUERY_ML_SUMMARY = """
+select
+    sum(ml_fraud_flag)                                        as ml_flagged,
+    round(sum(ml_fraud_flag) * 100.0 / count(*), 1)          as ml_flag_rate,
+    sum(case when ml_fraud_flag = 1 and f.fraud_flag = 1
+             then 1 else 0 end)                               as both_flagged
+from ml_predictions m
+join fct_fraud_signals f using (order_id)
+"""
+
 QUERY_FLAGGED = """
 select
-    order_id,
-    customer_id,
-    order_date,
-    order_amount,
-    payment_method,
-    product_category,
-    billing_country,
-    shipping_country,
-    ip_country,
-    risk_score,
-    risk_tier
-from fct_fraud_signals
-where fraud_flag = 1
-order by risk_score desc
+    f.order_id,
+    f.customer_id,
+    f.order_date,
+    f.order_amount,
+    f.payment_method,
+    f.product_category,
+    f.billing_country,
+    f.shipping_country,
+    f.ip_country,
+    f.risk_score,
+    f.risk_tier,
+    m.ml_fraud_prob,
+    m.ml_fraud_flag
+from fct_fraud_signals f
+join ml_predictions m using (order_id)
+where m.ml_fraud_flag = 1
+order by m.ml_fraud_prob desc
 limit 50
 """
 
@@ -165,7 +182,7 @@ footer { text-align: center; color: #94a3b8; font-size: 11px; padding: 24px; bor
 <header>
   <div>
     <h1>Ecommerce Fraud Analysis</h1>
-    <div class="hdr-sub">Transaction risk scoring &nbsp;·&nbsp; dbt Core &nbsp;·&nbsp; DuckDB &nbsp;·&nbsp; Python</div>
+    <div class="hdr-sub">Transaction risk scoring &nbsp;·&nbsp; dbt Core &nbsp;·&nbsp; DuckDB &nbsp;·&nbsp; XGBoost &nbsp;·&nbsp; Python</div>
   </div>
   <div class="hdr-meta">
     <span>Generated {{ generated_date }}</span>
@@ -200,6 +217,30 @@ footer { text-align: center; color: #94a3b8; font-size: 11px; padding: 24px; bor
     <div class="val">{{ summary.avg_risk_score }}</div>
     <div class="lbl">Avg Risk Score</div>
     <div class="sub">flagged orders only</div>
+  </div>
+</div>
+
+<div class="sec">ML Model Performance &mdash; XGBoost vs Rule-Based Baseline</div>
+<div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+  <div class="kpi info">
+    <div class="val">{{ ml.roc_auc }}</div>
+    <div class="lbl">ROC-AUC</div>
+    <div class="sub">baseline {{ ml.baseline_auc }}</div>
+  </div>
+  <div class="kpi info">
+    <div class="val">{{ ml.avg_precision }}</div>
+    <div class="lbl">Avg Precision</div>
+    <div class="sub">baseline {{ ml.baseline_ap }}</div>
+  </div>
+  <div class="kpi info">
+    <div class="val">{{ ml.fraud_f1 }}</div>
+    <div class="lbl">Fraud F1</div>
+    <div class="sub">baseline {{ ml.baseline_f1 }}</div>
+  </div>
+  <div class="kpi warning">
+    <div class="val">{{ ml_summary.ml_flagged }}</div>
+    <div class="lbl">ML Flagged</div>
+    <div class="sub">{{ ml_summary.ml_flag_rate }}% of total</div>
   </div>
 </div>
 
@@ -238,7 +279,7 @@ footer { text-align: center; color: #94a3b8; font-size: 11px; padding: 24px; bor
 
 </div>
 
-<div class="sec">Flagged Orders &mdash; Top 50 by Risk Score</div>
+<div class="sec">ML-Flagged Orders &mdash; Top 50 by ML Probability</div>
 <div class="filter-bar">
   <div class="filter-controls">
     <select class="filter-select" id="f-tier" onchange="applyFilters()">
@@ -272,7 +313,7 @@ footer { text-align: center; color: #94a3b8; font-size: 11px; padding: 24px; bor
       <tr>
         <th>Order ID</th><th>Customer</th><th>Date</th><th>Amount</th>
         <th>Payment</th><th>Category</th><th>Billing</th><th>Shipping</th>
-        <th>IP Country</th><th>Risk Score</th><th>Tier</th>
+        <th>IP Country</th><th>ML Prob</th><th>Risk Score</th><th>Tier</th>
       </tr>
     </thead>
     <tbody>
@@ -287,6 +328,7 @@ footer { text-align: center; color: #94a3b8; font-size: 11px; padding: 24px; bor
         <td>{{ r.billing_country }}</td>
         <td>{{ r.shipping_country }}</td>
         <td>{{ r.ip_country }}</td>
+        <td><strong>{{ "%.0f"|format(r.ml_fraud_prob * 100) }}%</strong></td>
         <td>
           <div class="sc">
             <div class="sc-track">
@@ -380,6 +422,24 @@ def main() -> None:
         for r in rules_raw
     ]
 
+    metrics_raw = {r["metric"]: r["value"]
+                   for r in con.execute(QUERY_ML_METRICS).df().to_dict(orient="records")}
+    ml = {
+        "roc_auc":       metrics_raw.get("roc_auc",       0),
+        "avg_precision": metrics_raw.get("avg_precision", 0),
+        "fraud_f1":      metrics_raw.get("fraud_f1",      0),
+        "baseline_auc":  metrics_raw.get("baseline_auc",  0),
+        "baseline_ap":   metrics_raw.get("baseline_ap",   0),
+        "baseline_f1":   metrics_raw.get("baseline_f1",   0),
+    }
+
+    ml_raw = con.execute(QUERY_ML_SUMMARY).df().iloc[0].to_dict()
+    ml_summary = {
+        "ml_flagged":   f"{int(ml_raw['ml_flagged']):,}",
+        "ml_flag_rate": ml_raw["ml_flag_rate"],
+        "both_flagged": int(ml_raw["both_flagged"]),
+    }
+
     flagged_raw = con.execute(QUERY_FLAGGED).df().to_dict(orient="records")
     flagged = [
         {
@@ -387,6 +447,7 @@ def main() -> None:
             "risk_score":    int(r["risk_score"]),
             "order_date":    str(r["order_date"])[:10],
             "score_bar_pct": round(int(r["risk_score"]) / 165 * 100, 1),
+            "ml_fraud_prob": float(r["ml_fraud_prob"]),
         }
         for r in flagged_raw
     ]
@@ -396,6 +457,8 @@ def main() -> None:
         summary=summary,
         rules=rules,
         flagged=flagged,
+        ml=ml,
+        ml_summary=ml_summary,
         high_pct=high_pct,
         medium_end=medium_end,
         low_end=low_end,

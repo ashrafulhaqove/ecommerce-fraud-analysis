@@ -79,6 +79,20 @@ def write_predictions(con, order_ids, X, model):
           f"({flags.sum():,} flagged, {flags.mean():.2%} rate)")
 
 
+def write_metrics(con, auc, ap, f1):
+    metrics = pd.DataFrame([
+        {'metric': 'roc_auc',       'value': round(auc, 4)},
+        {'metric': 'avg_precision', 'value': round(ap,  4)},
+        {'metric': 'fraud_f1',      'value': round(f1,  4)},
+        {'metric': 'baseline_auc',  'value': 0.631},
+        {'metric': 'baseline_ap',   'value': 0.052},
+        {'metric': 'baseline_f1',   'value': 0.093},
+    ])
+    con.execute('DROP TABLE IF EXISTS ml_metrics')
+    con.execute('CREATE TABLE ml_metrics AS SELECT * FROM metrics')
+    print("  ml_metrics written")
+
+
 def main():
     MODEL_PATH.parent.mkdir(exist_ok=True)
 
@@ -96,7 +110,7 @@ def main():
     model = train(X_train, y_train)
 
     print("\nEvaluating on test set ...")
-    evaluate(model, X_test, y_test)
+    evaluate_results = evaluate(model, X_test, y_test)
 
     print("Saving model ...")
     joblib.dump(model, MODEL_PATH)
@@ -104,6 +118,7 @@ def main():
 
     print("\nWriting predictions to DuckDB ...")
     write_predictions(con, order_ids, X, model)
+    write_metrics(con, *evaluate_results)
 
     con.close()
     print("\nDone.")
