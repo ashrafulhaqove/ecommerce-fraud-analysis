@@ -17,5 +17,6 @@ select
     cast(is_new_customer as boolean) as is_new_customer,
     cast(account_age_days as integer) as account_age_days,
     billing_country != shipping_country          as country_mismatch,
-    ip_country != billing_country                as ip_mismatch
+    ip_country != billing_country                as ip_mismatch,
+    cast(is_fraud as integer)                    as is_fraud
 from source_data

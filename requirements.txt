@@ -3,3 +3,10 @@ numpy
 dbt-duckdb
 duckdb
 jinja2
+jupyter
+matplotlib
+seaborn
+scikit-learn
+imbalanced-learn
+xgboost
+shap

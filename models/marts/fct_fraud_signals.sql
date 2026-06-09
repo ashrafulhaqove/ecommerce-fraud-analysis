@@ -26,6 +26,7 @@ scored as (
         t.account_age_days,
         t.country_mismatch,
         t.ip_mismatch,
+        t.is_fraud,
         v.orders_on_day,
         v.high_velocity,
         cp.avg_order_amount        as customer_avg_order_amount,
