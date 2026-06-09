@@ -21,3 +21,4 @@ __pycache__/
 .dbt/
 target/
 logs/
+models/*.pkl
