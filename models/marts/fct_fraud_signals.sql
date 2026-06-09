@@ -36,11 +36,11 @@ scored as (
             case when t.order_amount >= 150                                     then 20 else 0 end
           + case when t.country_mismatch                                        then 25 else 0 end
           + case when v.high_velocity                                           then 20 else 0 end
-          + case when t.product_category = 'gift_cards'                        then 15 else 0 end
+          + case when t.product_category = 'Travel'                            then 15 else 0 end
           + case when t.is_new_customer and t.order_amount >= 100              then 20 else 0 end
           + case when t.order_hour between 1 and 5                             then 10 else 0 end
           + case when t.ip_mismatch                                             then 25 else 0 end
-          + case when t.is_new_customer and t.payment_method = 'crypto'        then 30 else 0 end
+          + case when t.account_age_days < 30                                  then 30 else 0 end
         ) as risk_score
 
     from transactions t
