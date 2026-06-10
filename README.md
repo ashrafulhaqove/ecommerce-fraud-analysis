@@ -60,7 +60,8 @@ Each order is scored across 8 rules. Orders scoring 50+ are flagged.
 ```
 ├── scripts/
 │   ├── generate_transactions.py   # synthetic data generator
-│   ├── train_model.py             # XGBoost training + writes ml_predictions to DuckDB
+│   ├── train_model.py             # XGBoost training (run locally on real data)
+│   ├── predict.py                 # loads committed model, writes ml_predictions to DuckDB
 │   └── generate_report.py         # HTML report from DuckDB
 ├── models/
 │   ├── staging/                   # type casting, raw flag derivation
@@ -79,7 +80,11 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python scripts/generate_transactions.py
 dbt build --profiles-dir .
-python scripts/train_model.py
+python scripts/predict.py        # loads committed model, writes predictions
 python scripts/generate_report.py
 # open reports/index.html in a browser
 ```
+
+To retrain from scratch on new data, run `python scripts/train_model.py` instead of `predict.py`.
+
+> **Note on model storage:** The trained model (`models/xgboost_fraud.pkl`) is committed directly — it is 832 KB, well within Git's limits. For larger models (>100 MB) the standard approach is [DVC](https://dvc.org/) with a remote backend (S3, Google Drive, etc.), which stores only a small pointer file in Git and the actual artifact in object storage.

@@ -35,8 +35,8 @@ jobs:
       - name: Run dbt pipeline
         run: dbt build --profiles-dir .
 
-      - name: Train ML model
-        run: python scripts/train_model.py
+      - name: Run ML predictions
+        run: python scripts/predict.py
 
       - name: Generate HTML report
         run: python scripts/generate_report.py

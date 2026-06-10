@@ -21,4 +21,4 @@ __pycache__/
 .dbt/
 target/
 logs/
-models/*.pkl
+# models/*.pkl  — committed directly (small file); use DVC for larger models
