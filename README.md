@@ -2,6 +2,8 @@
 
 Detects suspicious ecommerce transactions using a fully local, reproducible data pipeline built with Python, dbt Core, and DuckDB. Results are published automatically to GitHub Pages on every push.
 
+**[Live Report](https://ashrafulhaqove.github.io/ecommerce-fraud-analysis)**
+
 ## Architecture
 
 ```mermaid
@@ -43,6 +45,18 @@ Each order is scored across 8 rules. Orders scoring 50+ are flagged.
 
 **Risk tiers:** high (≥80) · medium (50–79) · low (25–49) · none (<25)
 
+## ML Model
+
+XGBoost trained on the rule-scored feature set, with `scale_pos_weight` to handle class imbalance (~3.5% fraud rate).
+
+| Metric | Rule baseline | XGBoost |
+|---|---|---|
+| ROC-AUC | 0.631 | **0.881** |
+| Average Precision | 0.052 | **0.335** |
+| F1 | 0.093 | **0.248** |
+
+Model selection notebooks in [`analysis/`](analysis/) cover EDA, class imbalance handling (SMOTE vs class weights), and SHAP feature importance.
+
 ## Stack
 
 | Tool | Role |
@@ -52,12 +66,19 @@ Each order is scored across 8 rules. Orders scoring 50+ are flagged.
 | DuckDB | Local analytical database (no server needed) |
 | XGBoost + scikit-learn | ML fraud detection model |
 | Jinja2 | HTML report templating |
+| Docker | Containerised pipeline (single `docker compose up`) |
 | GitHub Actions | CI — runs full pipeline on every push |
 | GitHub Pages | Hosts the fraud report |
 
 ## Project Layout
 
 ```
+├── analysis/
+│   ├── 01_eda.ipynb               # class imbalance, distributions, rule precision/recall
+│   ├── 02_baseline.ipynb          # rule-based benchmark
+│   ├── 03_imbalance.ipynb         # SMOTE vs class_weight comparison
+│   ├── 04_model_selection.ipynb   # XGBoost vs RF vs LR vs HistGBM
+│   └── 05_shap.ipynb              # SHAP feature importance
 ├── scripts/
 │   ├── generate_transactions.py   # synthetic data generator
 │   ├── train_model.py             # XGBoost training (run locally on real data)
@@ -66,14 +87,28 @@ Each order is scored across 8 rules. Orders scoring 50+ are flagged.
 ├── models/
 │   ├── staging/                   # type casting, raw flag derivation
 │   ├── intermediate/              # velocity + customer risk profile
-│   └── marts/                     # final scored fraud signals table
+│   ├── marts/                     # final scored fraud signals table
+│   ├── xgboost_fraud.pkl          # committed trained model (832 KB)
+│   └── metrics.json               # training metrics
 ├── data/                          # raw CSV and DuckDB file (git-ignored)
 ├── reports/                       # generated HTML (git-ignored, deployed by CI)
+├── Dockerfile                     # containerised pipeline
 ├── profiles.yml                   # dbt DuckDB connection
 └── .github/workflows/pipeline.yml # CI/CD
 ```
 
 ## Running locally
+
+**With Docker (recommended)**
+
+```bash
+docker compose up
+# open reports/index.html in a browser
+```
+
+The container runs the full pipeline (generate → dbt build → predict → report) and writes `reports/index.html` to your local `reports/` directory via a volume mount.
+
+**Without Docker**
 
 ```bash
 python -m venv .venv && source .venv/bin/activate

@@ -94,6 +94,8 @@ header {
 header h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
 .hdr-sub { font-size: 12px; color: #64748b; margin-top: 3px; }
 .hdr-meta { font-size: 12px; color: #94a3b8; text-align: right; }
+.hdr-meta a { color: #94a3b8; text-decoration: none; }
+.hdr-meta a:hover { color: #f8fafc; }
 .hdr-meta span { display: block; }
 main { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
 .sec {
@@ -185,6 +187,7 @@ footer { text-align: center; color: #94a3b8; font-size: 11px; padding: 24px; bor
     <div class="hdr-sub">Transaction risk scoring &nbsp;·&nbsp; dbt Core &nbsp;·&nbsp; DuckDB &nbsp;·&nbsp; XGBoost &nbsp;·&nbsp; Python</div>
   </div>
   <div class="hdr-meta">
+    <span><a href="https://github.com/ashrafulhaqove/ecommerce-fraud-analysis" target="_blank">github.com/ashrafulhaqove/ecommerce-fraud-analysis</a></span>
     <span>Generated {{ generated_date }}</span>
     <span>{{ summary.total_orders }} transactions analysed</span>
   </div>

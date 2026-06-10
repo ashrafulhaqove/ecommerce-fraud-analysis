@@ -1,0 +1,16 @@
+.git/
+.venv/
+.claude/
+.cursor/
+target/
+logs/
+data/raw/
+data/*.duckdb
+reports/index.html
+analysis/
+concepts/
+__pycache__/
+.DS_Store
+*.ai.md
+CLAUDE.md
+.user.yml
