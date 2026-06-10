@@ -58,11 +58,11 @@ Each order is scored across 8 rules. Orders scoring 50+ are flagged.
 
 XGBoost trained on transaction features from the dbt pipeline — order amount, order hour, account age, daily order velocity, customer average order amount, IP/country mismatch flags, payment method, and product category. `scale_pos_weight` handles the class imbalance without oversampling.
 
-| Metric | Rule baseline | XGBoost |
-|---|---|---|
-| ROC-AUC | 0.631 | **0.881** |
-| Average Precision | 0.052 | **0.335** |
-| F1 | 0.093 | **0.248** |
+| Metric | Rule baseline | Logistic Reg. | Random Forest | HistGBM | XGBoost |
+|---|---|---|---|---|---|
+| ROC-AUC | 0.631 | 0.747 | 0.848 | 0.854 | **0.881** |
+| Average Precision | 0.052 | 0.103 | 0.247 | 0.256 | **0.335** |
+| F1 | 0.093 | 0.146 | 0.233 | 0.205 | **0.248** |
 
 Top SHAP features: Electronics category, account age, customer avg order amount, order amount, daily order velocity.
 
