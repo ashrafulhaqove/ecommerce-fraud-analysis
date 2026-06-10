@@ -1,0 +1,8 @@
+{
+  "roc_auc": 0.881,
+  "avg_precision": 0.335,
+  "fraud_f1": 0.248,
+  "baseline_auc": 0.631,
+  "baseline_ap": 0.052,
+  "baseline_f1": 0.093
+}

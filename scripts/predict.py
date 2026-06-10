@@ -1,12 +1,13 @@
+import json
 from pathlib import Path
 
 import duckdb
 import joblib
 import pandas as pd
-from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
 
-DB_PATH    = Path('data/ecommerce_fraud.duckdb')
-MODEL_PATH = Path('models/xgboost_fraud.pkl')
+DB_PATH      = Path('data/ecommerce_fraud.duckdb')
+MODEL_PATH   = Path('models/xgboost_fraud.pkl')
+METRICS_PATH = Path('models/metrics.json')
 
 FEATURES  = [
     'order_amount', 'order_hour', 'account_age_days', 'orders_on_day',
@@ -17,14 +18,11 @@ FEATURES  = [
 BOOL_COLS = ['is_new_customer', 'country_mismatch', 'ip_mismatch', 'high_velocity']
 CAT_COLS  = ['payment_method', 'product_category']
 
-BASELINE = {'roc_auc': 0.631, 'avg_precision': 0.052, 'fraud_f1': 0.093}
-
 
 def main():
-    if not MODEL_PATH.exists():
-        raise FileNotFoundError(
-            f"{MODEL_PATH} not found — run scripts/train_model.py first"
-        )
+    for path in (MODEL_PATH, METRICS_PATH):
+        if not path.exists():
+            raise FileNotFoundError(f"{path} not found — run scripts/train_model.py first")
 
     print(f"Loading model from {MODEL_PATH} ...")
     model = joblib.load(MODEL_PATH)
@@ -35,8 +33,7 @@ def main():
     X   = pd.get_dummies(df[FEATURES], columns=CAT_COLS, drop_first=True)
     for c in BOOL_COLS:
         X[c] = X[c].astype(int)
-    y = df['is_fraud']
-    print(f"  {len(X):,} rows, fraud rate {y.mean():.2%}")
+    print(f"  {len(X):,} rows")
 
     print("Running predictions ...")
     probs = model.predict_proba(X.values)[:, 1]
@@ -50,20 +47,19 @@ def main():
     con.execute('CREATE OR REPLACE TABLE ml_predictions AS SELECT * FROM preds')
     print(f"  ml_predictions written: {len(preds):,} rows ({flags.sum():,} flagged)")
 
-    auc = roc_auc_score(y, probs)
-    ap  = average_precision_score(y, probs)
-    f1  = f1_score(y, flags)
-    print(f"  ROC-AUC {auc:.3f}  AP {ap:.3f}  F1 {f1:.3f}")
+    # use committed metrics from training on real data, not synthetic re-evaluation
+    m = json.loads(METRICS_PATH.read_text())
+    print(f"  Metrics (from training): ROC-AUC {m['roc_auc']}  AP {m['avg_precision']}  F1 {m['fraud_f1']}")
 
-    metrics = pd.DataFrame([
-        {'metric': 'roc_auc',       'value': round(auc, 4)},
-        {'metric': 'avg_precision', 'value': round(ap,  4)},
-        {'metric': 'fraud_f1',      'value': round(f1,  4)},
-        {'metric': 'baseline_auc',  'value': BASELINE['roc_auc']},
-        {'metric': 'baseline_ap',   'value': BASELINE['avg_precision']},
-        {'metric': 'baseline_f1',   'value': BASELINE['fraud_f1']},
+    metrics_df = pd.DataFrame([
+        {'metric': 'roc_auc',       'value': m['roc_auc']},
+        {'metric': 'avg_precision', 'value': m['avg_precision']},
+        {'metric': 'fraud_f1',      'value': m['fraud_f1']},
+        {'metric': 'baseline_auc',  'value': m['baseline_auc']},
+        {'metric': 'baseline_ap',   'value': m['baseline_ap']},
+        {'metric': 'baseline_f1',   'value': m['baseline_f1']},
     ])
-    con.execute('CREATE OR REPLACE TABLE ml_metrics AS SELECT * FROM metrics')
+    con.execute('CREATE OR REPLACE TABLE ml_metrics AS SELECT * FROM metrics_df')
     print("  ml_metrics written")
 
     con.close()

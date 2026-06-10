@@ -32,13 +32,13 @@ Each order is scored across 8 rules. Orders scoring 50+ are flagged.
 
 | Rule | Points |
 |---|---|
-| Order amount ≥ $150 | +20 |
-| Billing country ≠ shipping country | +25 |
 | IP country ≠ billing country | +25 |
-| New customer + crypto payment | +30 |
+| Billing country ≠ shipping country | +25 |
+| New account (age < 30 days) | +30 |
+| Order amount ≥ $150 | +20 |
 | New customer + order ≥ $100 | +20 |
 | High velocity (3+ orders/day) | +20 |
-| Gift card purchase | +15 |
+| Travel category purchase | +15 |
 | Late-night order (1am–5am) | +10 |
 
 **Risk tiers:** high (≥80) · medium (50–79) · low (25–49) · none (<25)

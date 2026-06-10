@@ -21,21 +21,21 @@ from fct_fraud_signals
 
 QUERY_RULES = """
 select rule, hits from (
-    select 'High order amount (>=150)'              as rule, sum(case when order_amount >= 150 then 1 else 0 end)                         as hits from fct_fraud_signals
+    select 'IP mismatch (IP != billing country)'         as rule, sum(case when ip_mismatch then 1 else 0 end)                             as hits from fct_fraud_signals
     union all
-    select 'Country mismatch (billing != shipping)',          sum(case when country_mismatch then 1 else 0 end)                           from fct_fraud_signals
+    select 'Country mismatch (billing != shipping)',              sum(case when country_mismatch then 1 else 0 end)                         from fct_fraud_signals
     union all
-    select 'IP mismatch (IP != billing country)',             sum(case when ip_mismatch then 1 else 0 end)                                from fct_fraud_signals
+    select 'High order amount (>=150)',                           sum(case when order_amount >= 150 then 1 else 0 end)                      from fct_fraud_signals
     union all
-    select 'High velocity (3+ orders/day)',                   sum(case when high_velocity then 1 else 0 end)                              from fct_fraud_signals
+    select 'New customer + high amount (>=100)',                  sum(case when is_new_customer and order_amount >= 100 then 1 else 0 end)  from fct_fraud_signals
     union all
-    select 'New customer + high amount (>=100)',              sum(case when is_new_customer and order_amount >= 100 then 1 else 0 end)    from fct_fraud_signals
+    select 'High velocity (3+ orders/day)',                       sum(case when high_velocity then 1 else 0 end)                            from fct_fraud_signals
     union all
-    select 'Gift card purchase',                              sum(case when product_category = 'gift_cards' then 1 else 0 end)           from fct_fraud_signals
+    select 'New account (age < 30 days)',                         sum(case when account_age_days < 30 then 1 else 0 end)                    from fct_fraud_signals
     union all
-    select 'New customer + crypto payment',                   sum(case when is_new_customer and payment_method = 'crypto' then 1 else 0 end)  from fct_fraud_signals
+    select 'Travel category purchase',                            sum(case when product_category = 'Travel' then 1 else 0 end)              from fct_fraud_signals
     union all
-    select 'Late-night order (1am-5am)',                      sum(case when order_hour between 1 and 5 then 1 else 0 end)                 from fct_fraud_signals
+    select 'Late-night order (1am-5am)',                          sum(case when order_hour between 1 and 5 then 1 else 0 end)               from fct_fraud_signals
 ) order by hits desc
 """
 

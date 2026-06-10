@@ -44,14 +44,14 @@ def main() -> None:
     )
 
     payment_methods = rng.choice(
-        ["credit_card", "debit_card", "paypal", "crypto"],
+        ["visa", "mastercard", "discover", "american express"],
         size=row_count,
-        p=[0.50, 0.25, 0.20, 0.05],
+        p=[0.45, 0.35, 0.12, 0.08],
     )
     product_categories = rng.choice(
-        ["electronics", "clothing", "gift_cards", "luxury", "home"],
+        ["Electronics", "Clothing", "Travel", "Home & Garden", "Services"],
         size=row_count,
-        p=[0.20, 0.35, 0.15, 0.10, 0.20],
+        p=[0.20, 0.35, 0.15, 0.20, 0.10],
     )
 
     is_new_customer = rng.random(size=row_count) < 0.20
@@ -60,6 +60,9 @@ def main() -> None:
         rng.integers(1, 30, size=row_count),
         rng.integers(30, 1825, size=row_count),
     )
+
+    # synthetic fraud label (~5% rate) for dbt pipeline compatibility
+    is_fraud = (rng.random(size=row_count) < 0.05).astype(int)
 
     data = pd.DataFrame(
         {
@@ -75,6 +78,7 @@ def main() -> None:
             "ip_country": ip_countries,
             "is_new_customer": is_new_customer,
             "account_age_days": account_age_days,
+            "is_fraud": is_fraud,
         }
     )
 
