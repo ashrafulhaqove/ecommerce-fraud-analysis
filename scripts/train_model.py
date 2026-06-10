@@ -67,14 +67,13 @@ def evaluate(model, X_test, y_test):
 
 def write_predictions(con, order_ids, X, model):
     probs = model.predict_proba(X.values)[:, 1]
-    flags = model.predict(X.values)
+    flags = (probs >= 0.5).astype(int)
     preds = pd.DataFrame({
         'order_id':      order_ids.values,
         'ml_fraud_prob': probs.round(4),
-        'ml_fraud_flag': flags.astype(int),
+        'ml_fraud_flag': flags,
     })
-    con.execute('DROP TABLE IF EXISTS ml_predictions')
-    con.execute('CREATE TABLE ml_predictions AS SELECT * FROM preds')
+    con.execute('CREATE OR REPLACE TABLE ml_predictions AS SELECT * FROM preds')
     print(f"  ml_predictions written: {len(preds):,} rows  "
           f"({flags.sum():,} flagged, {flags.mean():.2%} rate)")
 
@@ -88,8 +87,7 @@ def write_metrics(con, auc, ap, f1):
         {'metric': 'baseline_ap',   'value': 0.052},
         {'metric': 'baseline_f1',   'value': 0.093},
     ])
-    con.execute('DROP TABLE IF EXISTS ml_metrics')
-    con.execute('CREATE TABLE ml_metrics AS SELECT * FROM metrics')
+    con.execute('CREATE OR REPLACE TABLE ml_metrics AS SELECT * FROM metrics')
     print("  ml_metrics written")
 
 

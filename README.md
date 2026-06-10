@@ -11,7 +11,9 @@ flowchart LR
     B --> D[dbt Intermediate\ncustomer profile]
     C --> E[dbt Mart\nfct_fraud_signals]
     D --> E
-    E -->|DuckDB| F[Python\nReport Generator]
+    E -->|DuckDB| ML[XGBoost\nML Pipeline]
+    ML -->|ml_predictions| F[Python\nReport Generator]
+    E -->|DuckDB| F
     F -->|index.html| G[GitHub Pages]
 
     style A fill:#4299e1,color:#fff,stroke:none
@@ -19,6 +21,7 @@ flowchart LR
     style C fill:#68d391,color:#fff,stroke:none
     style D fill:#68d391,color:#fff,stroke:none
     style E fill:#f6ad55,color:#fff,stroke:none
+    style ML fill:#9f7aea,color:#fff,stroke:none
     style F fill:#4299e1,color:#fff,stroke:none
     style G fill:#fc8181,color:#fff,stroke:none
 ```
@@ -44,9 +47,10 @@ Each order is scored across 8 rules. Orders scoring 50+ are flagged.
 
 | Tool | Role |
 |---|---|
-| Python + pandas | Synthetic data generation, report rendering |
+| Python + pandas | Data preparation, report rendering |
 | dbt Core | Data transformation, testing, lineage |
 | DuckDB | Local analytical database (no server needed) |
+| XGBoost + scikit-learn | ML fraud detection model |
 | Jinja2 | HTML report templating |
 | GitHub Actions | CI — runs full pipeline on every push |
 | GitHub Pages | Hosts the fraud report |
@@ -56,6 +60,7 @@ Each order is scored across 8 rules. Orders scoring 50+ are flagged.
 ```
 ├── scripts/
 │   ├── generate_transactions.py   # synthetic data generator
+│   ├── train_model.py             # XGBoost training + writes ml_predictions to DuckDB
 │   └── generate_report.py         # HTML report from DuckDB
 ├── models/
 │   ├── staging/                   # type casting, raw flag derivation
@@ -74,6 +79,7 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python scripts/generate_transactions.py
 dbt build --profiles-dir .
+python scripts/train_model.py
 python scripts/generate_report.py
 # open reports/index.html in a browser
 ```

@@ -66,12 +66,12 @@ select
     f.ip_country,
     f.risk_score,
     f.risk_tier,
-    m.ml_fraud_prob,
-    m.ml_fraud_flag
+    coalesce(m.ml_fraud_prob, 0.0) as ml_fraud_prob,
+    coalesce(m.ml_fraud_flag, 0)   as ml_fraud_flag
 from fct_fraud_signals f
-join ml_predictions m using (order_id)
-where m.ml_fraud_flag = 1
-order by m.ml_fraud_prob desc
+left join ml_predictions m using (order_id)
+where f.fraud_flag = 1
+order by ml_fraud_prob desc
 limit 50
 """
 
@@ -279,7 +279,7 @@ footer { text-align: center; color: #94a3b8; font-size: 11px; padding: 24px; bor
 
 </div>
 
-<div class="sec">ML-Flagged Orders &mdash; Top 50 by ML Probability</div>
+<div class="sec">Rule-Flagged Orders &mdash; Top 50 by ML Probability</div>
 <div class="filter-bar">
   <div class="filter-controls">
     <select class="filter-select" id="f-tier" onchange="applyFilters()">
@@ -290,18 +290,18 @@ footer { text-align: center; color: #94a3b8; font-size: 11px; padding: 24px; bor
     </select>
     <select class="filter-select" id="f-payment" onchange="applyFilters()">
       <option value="">All Payments</option>
-      <option value="credit_card">Credit Card</option>
-      <option value="debit_card">Debit Card</option>
-      <option value="paypal">PayPal</option>
-      <option value="crypto">Crypto</option>
+      <option value="visa">Visa</option>
+      <option value="mastercard">Mastercard</option>
+      <option value="discover">Discover</option>
+      <option value="american express">American Express</option>
     </select>
     <select class="filter-select" id="f-category" onchange="applyFilters()">
       <option value="">All Categories</option>
-      <option value="electronics">Electronics</option>
-      <option value="clothing">Clothing</option>
-      <option value="gift_cards">Gift Cards</option>
-      <option value="luxury">Luxury</option>
-      <option value="home">Home</option>
+      <option value="Electronics">Electronics</option>
+      <option value="Clothing">Clothing</option>
+      <option value="Travel">Travel</option>
+      <option value="Home &amp; Garden">Home &amp; Garden</option>
+      <option value="Services">Services</option>
     </select>
     <span class="filter-count" id="row-count"></span>
   </div>
@@ -422,23 +422,29 @@ def main() -> None:
         for r in rules_raw
     ]
 
-    metrics_raw = {r["metric"]: r["value"]
-                   for r in con.execute(QUERY_ML_METRICS).df().to_dict(orient="records")}
+    try:
+        metrics_raw = {r["metric"]: r["value"]
+                       for r in con.execute(QUERY_ML_METRICS).df().to_dict(orient="records")}
+    except Exception:
+        metrics_raw = {}
     ml = {
-        "roc_auc":       metrics_raw.get("roc_auc",       0),
-        "avg_precision": metrics_raw.get("avg_precision", 0),
-        "fraud_f1":      metrics_raw.get("fraud_f1",      0),
-        "baseline_auc":  metrics_raw.get("baseline_auc",  0),
-        "baseline_ap":   metrics_raw.get("baseline_ap",   0),
-        "baseline_f1":   metrics_raw.get("baseline_f1",   0),
+        "roc_auc":       metrics_raw.get("roc_auc",       "N/A"),
+        "avg_precision": metrics_raw.get("avg_precision", "N/A"),
+        "fraud_f1":      metrics_raw.get("fraud_f1",      "N/A"),
+        "baseline_auc":  metrics_raw.get("baseline_auc",  "N/A"),
+        "baseline_ap":   metrics_raw.get("baseline_ap",   "N/A"),
+        "baseline_f1":   metrics_raw.get("baseline_f1",   "N/A"),
     }
 
-    ml_raw = con.execute(QUERY_ML_SUMMARY).df().iloc[0].to_dict()
-    ml_summary = {
-        "ml_flagged":   f"{int(ml_raw['ml_flagged']):,}",
-        "ml_flag_rate": ml_raw["ml_flag_rate"],
-        "both_flagged": int(ml_raw["both_flagged"]),
-    }
+    try:
+        ml_raw = con.execute(QUERY_ML_SUMMARY).df().iloc[0].to_dict()
+        ml_summary = {
+            "ml_flagged":   f"{int(ml_raw['ml_flagged'] or 0):,}",
+            "ml_flag_rate": ml_raw["ml_flag_rate"] or 0,
+            "both_flagged": int(ml_raw["both_flagged"] or 0),
+        }
+    except Exception:
+        ml_summary = {"ml_flagged": "N/A", "ml_flag_rate": 0, "both_flagged": 0}
 
     flagged_raw = con.execute(QUERY_FLAGGED).df().to_dict(orient="records")
     flagged = [
