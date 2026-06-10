@@ -57,6 +57,36 @@ XGBoost trained on the rule-scored feature set, with `scale_pos_weight` to handl
 
 Model selection notebooks in [`analysis/`](analysis/) cover EDA, class imbalance handling (SMOTE vs class weights), and SHAP feature importance.
 
+## Development Process
+
+The project was built in two major versions across six phases.
+
+### v1 — Rule-Based Pipeline
+
+**Phase 1 — Foundation**
+Set up a Python virtual environment, generated a synthetic transactions CSV (500 rows, 12 fields), and connected dbt Core to a local DuckDB file. Established the project skeleton: staging → intermediate → mart layer.
+
+**Phase 2 — Data Modelling**
+Built three dbt model layers. Staging casts raw types. Two intermediate models compute order velocity per customer per day and a customer risk profile (avg amount, order count, account age). The mart model `fct_fraud_signals` applies 8 weighted rules to produce a `risk_score` and a `fraud_flag`. 24 automated schema tests validate every model on every run.
+
+**Phase 3 — Dashboard**
+Wrote `generate_report.py` to query DuckDB and render a self-contained HTML report via Jinja2 — no external dependencies, works on GitHub Pages as-is. Includes KPI cards, a donut chart for risk tier distribution, fraud signal hit counts with progress bars, and a filterable flagged orders table with CSV export.
+
+**Phase 4 — CI/CD**
+Configured GitHub Actions to run the full pipeline on every push to `main` — generate data → `dbt build` → generate report → deploy to GitHub Pages. The DuckDB file and report are never committed; they are always built fresh in CI.
+
+---
+
+### v2 — Real Data + ML
+
+**Phase 5 — Real Data & Analysis**
+Replaced synthetic data with the IEEE-CIS fraud dataset (590k rows, 3.5% fraud rate). Wrote five analysis notebooks: EDA and class imbalance characterisation → rule-based baseline (AUC 0.631) → SMOTE vs. `class_weight` comparison → model selection across four algorithms → SHAP feature importance.
+
+**Phase 6 — ML Pipeline & Release**
+Trained an XGBoost classifier locally (`train_model.py`), committed the 832 KB model artifact and `metrics.json`. CI uses `predict.py` — it loads the committed model and writes predictions to DuckDB, avoiding re-training in the cloud. Report updated to surface ML probability scores alongside rule scores. Containerised with Docker for single-command reproducibility. Tagged as `v2.0.0`.
+
+---
+
 ## Stack
 
 | Tool | Role |
